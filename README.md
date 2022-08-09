@@ -1,2 +1,2 @@
 # mqtt_relay
-Relay MQTT topic from one broker (subscribe) to another (publish).
+Relay MQTT topic from one broker (subscribe) to HTTP POST.
