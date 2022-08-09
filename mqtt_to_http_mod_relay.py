@@ -33,6 +33,7 @@ uplink_interval = interval_minute #10*interval_second
 time_keeper = 0
 time_last_publish = 0
 time_ticker_new = 0
+time_ticker_new_transmitted = 0
 
 #### MQTT callbacks
 def on_connect(client, userdata, flags, rc):
@@ -48,7 +49,7 @@ def on_message(client, userdata, message):
 
     #### Global variables
     global time_keeper, uplink_interval, time_last_publish
-    global time_ticker_new
+    global time_ticker_new, time_ticker_new_transmitted
 
     #### subscription payload
     payload_mqtt = json.loads(str(message.payload.decode("utf-8")))
@@ -58,18 +59,25 @@ def on_message(client, userdata, message):
     
     #### ticker
     if time_ticker_new != time_new:
-        print(time_new)
+        print("Not transmitted: ", time_new)
         time_ticker_new = time_new
 
     #### if enough time has passed to exceed uplink interval, then package data and execute HTTP POST request
     #### In order to update all the sensor payloads from 1 payload, the 'time_last_publish' is used to discern if it is all from the same payload
     if time_new - time_keeper >= uplink_interval or time_new == time_last_publish:
         time_last_publish = time_new
+        if time_ticker_new_transmitted != time_new:
+            print("Transmitted: ", time_new)
+            time_ticker_new_transmitted = time_new
+
+        #print("Transmitted: ", time_new)
 
         # create new payload dictionary
         payload_new = {}
         sensor_name = message.topic
-        payload_new['eui'] = 'arn-docomo-odaq-266713' + sensor_name[-6:]
+        payload_new['eui'] = 'odaq-266713' + '-' + sensor_name[12:14] + '-' + sensor_name[15:17]
+        print(payload_new['eui'])
+        
         payload_new['format'] = "json"
 
         # create data object
@@ -90,8 +98,8 @@ def on_message(client, userdata, message):
 
         # send HTTP POST request with payload_new
         
-        #r = requests.post(http_url_test3, headers=headers_test, data=json.dumps(payload_new))
-        r = requests.post(http_url1, headers=headers1, json=json.dumps(payload_new))
+        #r = requests.post(http_url_test3, headers=headers_test, json=payload_new)#data=json.dumps(payload_new))
+        r = requests.post(http_url1, headers=headers1, json=payload_new)
         #sonData = r.json()
         #print(jsonData)
         print("status code: ", r.status_code)
